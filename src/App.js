@@ -1,5 +1,8 @@
-import { useRef } from "react";
-// import { MdContentPaste } from "react-icons/md";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { MdContentPaste } from "react-icons/md";
+
+const n = 30;
+const colorContext = createContext();
 
 function getColor() {
   const hex = "1234567890abcdef".split("");
@@ -13,16 +16,17 @@ function getColor() {
 function generateColors(n) {
   const colors = [];
   for (let i = 0; i < n; i++) {
-    colors.push(getColor);
+    colors.push(getColor());
   }
   return colors;
 }
 
 function Header() {
-  const ref = useRef(30);
+  const { setColor } = useContext(colorContext);
+  const ref = useRef(null);
 
   const click = () => {
-    generateColors(ref.current);
+    setColor(generateColors(ref.current.value));
   };
 
   return (
@@ -38,7 +42,6 @@ function Header() {
           type="number"
           name="input"
           id="num"
-          value={ref.current}
           ref={ref}
         />
         <button
@@ -51,10 +54,69 @@ function Header() {
   );
 }
 
+function Color({ color }) {
+  const [copied, setcopied] = useState(false);
+
+  const resetCopied = () => {
+    console.log("you copied");
+    setcopied(false);
+  };
+
+  useEffect(() => {
+    document.addEventListener("copy", resetCopied);
+    return () => {
+      document.removeEventListener("copy", resetCopied);
+    };
+  }, []);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(color);
+      setcopied(true);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  return (
+    <div
+      style={{ backgroundColor: color }}
+      className="text-white rounded-lg  p-3 w-48 h-48   text-center text-bold uppercase relative ">
+      <div className="text-2xl drop-shadow-2xl shadow-black">{color}</div>
+      <MdContentPaste
+        onClick={copy}
+        className=" peer text-center mx-auto mt-10 text-5xl cursor-pointer"
+      />
+      <div
+        className={` hidden peer-hover:block absolute font-bold text-black shadow-md shadow-black p-3 ${
+          copied ? "bg-green-300" : "bg-red-300"
+        }`}>
+        {copied ? "Coied!" : "copy"}
+      </div>
+    </div>
+  );
+}
+
+function Body() {
+  const { color } = useContext(colorContext);
+
+  return (
+    <div className="flex flex-wrap gap-6 m-auto justify-center">
+      {color.map((item) => (
+        <Color color={item} />
+      ))}
+    </div>
+  );
+}
+
 function App() {
+  const [color, setColor] = useState(generateColors(n));
+
   return (
     <div id="app" className=" mx-auto w-10/12 py-10 bg-secondary-50 px-1">
-      <Header />
+      <colorContext.Provider value={{ color, setColor }}>
+        <Header />
+        <Body />
+      </colorContext.Provider>
     </div>
   );
 }
